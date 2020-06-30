@@ -2,7 +2,8 @@
 name = "mnist_classification"
 version = "0.1.0"
 authors = ["Kamil Duda <kamilduda01@gmail.com>"]
-homepage = "https://serde.rs/"
+homepage = "https://github.com/kamilduda/mnist_classification"
+repository = "https://github.com/kamilduda/mnist_classification"
 edition = "2018"
 
 
