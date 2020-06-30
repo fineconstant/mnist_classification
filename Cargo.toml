@@ -1,0 +1,12 @@
+[package]
+name = "mnist_classification"
+version = "0.1.0"
+authors = ["Kamil Duda <kamilduda01@gmail.com>"]
+homepage = "https://serde.rs/"
+edition = "2018"
+
+
+[dependencies]
+#nalgebra = "0.21"
+ndarray = "0.13"
+ndarray-rand = "0.11"
