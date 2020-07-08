@@ -1,7 +1,5 @@
 use ndarray::prelude::*;
 use ndarray_rand::rand_distr::Normal;
-use ndarray_rand::rand_distr::Standard;
-use ndarray_rand::rand_distr::StandardNormal;
 use ndarray_rand::{RandomExt, F32};
 
 pub struct StandardNormalDistribution;

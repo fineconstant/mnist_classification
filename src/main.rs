@@ -1,5 +1,5 @@
-use mnist_classification::prelude::*;
+use mnist_classification::prelude::NeuralNetwork;
 
 fn main() {
-    let x = NeuralNetwork::from(vec![5, 4, 3, 2, 1]);
+    let _x = NeuralNetwork::from(vec![5, 4, 3, 2, 1]);
 }
