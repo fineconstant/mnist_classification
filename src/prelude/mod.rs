@@ -4,6 +4,9 @@ use arrays_random::StandardNormalDistribution;
 use ndarray::prelude::*;
 
 use crate::algebra::Algebra;
+use crate::infrastructure::logging;
+
+use log::*;
 
 pub struct NeuralNetwork {
     layers_number: usize,
@@ -14,6 +17,8 @@ pub struct NeuralNetwork {
 
 impl NeuralNetwork {
     pub fn from(layers_sizes: Vec<usize>) -> NeuralNetwork {
+        info!("Creating network with layers: {:?}", layers_sizes);
+
         let layers_number = layers_sizes.len();
 
         let tail = layers_sizes[1..].iter();
@@ -41,7 +46,6 @@ impl NeuralNetwork {
         }
     }
 
-    // todo: add logging
     // todo: add tests
     // todo: refactor and simplify
     /// Input is an (m, 1) array.
