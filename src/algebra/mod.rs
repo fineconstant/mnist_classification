@@ -1,15 +1,22 @@
 use ndarray::prelude::*;
+use ndarray::{Dim, IntoDimension};
 
 pub struct Algebra;
 
 impl Algebra {
     /// Calculates Sigmoid value for each element of an array.
-    pub fn sigmoid(array: ArrayD<f32>) -> ArrayD<f32> {
+    pub fn sigmoid<D>(array: Array<f32, D>) -> Array<f32, D>
+    where
+        D: Dimension,
+    {
         array.mapv(|x| 1.0 / (1.0 + f32::exp(-x)))
     }
 
     /// Calculates exponential (e^x) for each element of an array.
-    pub fn exp(array: ArrayD<f32>) -> ArrayD<f32> {
+    pub fn exp<D>(array: Array<f32, D>) -> Array<f32, D>
+    where
+        D: Dimension,
+    {
         array.mapv(f32::exp)
     }
 }
@@ -20,7 +27,7 @@ mod tests {
 
     #[test]
     fn calculates_sigmoid_for_1d_array() {
-        let xs = array![-5., -4., -3., -2., -1., 0., 1., 2., 3., 4., 5., 6.].into_dyn();
+        let xs = array![-5., -4., -3., -2., -1., 0., 1., 2., 3., 4., 5., 6.];
 
         let actual = Algebra::sigmoid(xs);
 
@@ -37,13 +44,13 @@ mod tests {
             0.98201376,
             0.9933072,
             0.9975274
-        ].into_dyn();
+        ];
         assert_eq!(actual, expected);
     }
 
     #[test]
     fn calculates_sigmoid_for_2d_array() {
-        let xs = array![[-5., -4., -3., -2., -1., 0.], [1., 2., 3., 4., 5., 6.]].into_dyn();
+        let xs = array![[-5., -4., -3., -2., -1., 0.], [1., 2., 3., 4., 5., 6.]];
 
         let actual = Algebra::sigmoid(xs);
 
@@ -57,13 +64,13 @@ mod tests {
                 0.5
             ],
             [0.7310586, 0.880797, 0.95257413, 0.98201376, 0.9933072, 0.9975274]
-        ].into_dyn();
+        ];
         assert_eq!(actual, expected);
     }
 
     #[test]
     fn calculates_exp_for_1d_array() {
-        let xs = array![-5., -4., -3., -2., -1., 0., 1., 2., 3., 4., 5., 6.].into_dyn();
+        let xs = array![-5., -4., -3., -2., -1., 0., 1., 2., 3., 4., 5., 6.];
 
         let actual = Algebra::exp(xs);
 
@@ -80,13 +87,13 @@ mod tests {
             54.59815,
             148.41316,
             403.4288
-        ].into_dyn();
+        ];
         assert_eq!(actual, expected);
     }
 
     #[test]
     fn calculates_exp_for_2d_array() {
-        let xs = array![[-5., -4., -3., -2., -1., 0.], [1., 2., 3., 4., 5., 6.]].into_dyn();
+        let xs = array![[-5., -4., -3., -2., -1., 0.], [1., 2., 3., 4., 5., 6.]];
 
         let actual = Algebra::exp(xs);
 
@@ -100,7 +107,7 @@ mod tests {
                 1.0,
             ],
             [2.7182817, 7.389056, 20.085537, 54.59815, 148.41316, 403.4288]
-        ].into_dyn();
+        ];
         assert_eq!(actual, expected);
     }
 }
