@@ -30,13 +30,21 @@ impl NeuralNetwork {
             // .map(|(x, y)| StandardNormalDistribution::from(&[*x, *y]))
             // weights (weight, neuron)
             .map(|(x, y)| StandardNormalDistribution::from(&[*y, *x]))
-            .map(|array| array.into_dimensionality::<Ix2>().unwrap())
+            .map(|array| {
+                array
+                    .into_dimensionality::<Ix2>()
+                    .expect("Failed converting weights into 2D array")
+            })
             .collect::<Vec<_>>();
 
         let biases = layers_sizes[1..]
             .iter()
             .map(|x| StandardNormalDistribution::from(&[*x]))
-            .map(|array| array.into_dimensionality::<Ix1>().unwrap())
+            .map(|array| {
+                array
+                    .into_dimensionality::<Ix1>()
+                    .expect("Failed biases weights into 1D array")
+            })
             .collect::<Vec<_>>();
 
         NeuralNetwork {
