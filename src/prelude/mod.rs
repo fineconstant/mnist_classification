@@ -11,8 +11,8 @@ use log::*;
 pub struct NeuralNetwork {
     layers_number: usize,
     layers_sizes: Vec<usize>,
-    weights: Vec<ArrayD<f32>>,
-    biases: Vec<ArrayD<f32>>,
+    weights: Vec<Array2<f32>>,
+    biases: Vec<Array1<f32>>,
 }
 
 impl NeuralNetwork {
@@ -30,12 +30,13 @@ impl NeuralNetwork {
             // .map(|(x, y)| StandardNormalDistribution::from(&[*x, *y]))
             // weights (weight, neuron)
             .map(|(x, y)| StandardNormalDistribution::from(&[*y, *x]))
-            .into_iter()
-            .collect::<Vec<ArrayD<f32>>>();
+            .map(|array| array.into_dimensionality::<Ix2>().unwrap())
+            .collect::<Vec<_>>();
 
         let biases = layers_sizes[1..]
             .iter()
             .map(|x| StandardNormalDistribution::from(&[*x]))
+            .map(|array| array.into_dimensionality::<Ix1>().unwrap())
             .collect::<Vec<_>>();
 
         NeuralNetwork {
@@ -46,40 +47,20 @@ impl NeuralNetwork {
         }
     }
 
-    // todo: add tests
-    // todo: refactor and simplify
     /// Input is an (m, 1) array.
     ///
     /// Output is an(n, 1) array where n is number of neurons is passed through,
     ///
     /// Uses ndarray dot function: https://docs.rs/ndarray/0.13.1/ndarray/struct.ArrayBase.html#method.dot
-    fn feed_forward(self, input: ArrayD<f32>) -> ArrayD<f32> {
+    fn feed_forward(self, input: Array1<f32>) -> Array1<f32> {
         self.weights
             .iter()
             .zip(self.biases.iter())
             .fold(input, |interim, (weights, biases)| {
-                println!("INTERIM");
-                println!("{:?}", interim);
-                println!();
-                println!("WEIGHTS");
-                println!("{:?}", weights);
-                println!();
-                println!("BIASES");
-                println!("{:?}", biases);
-                println!();
-
-                let a = interim.clone().into_dimensionality::<Ix1>().unwrap();
-                let b = weights.clone().into_dimensionality::<Ix2>().unwrap();
-
-                println!("RESULT");
-                println!("{:?}", a.dot(&b).into_dyn());
-                println!();
-                println!("RESULT + BIASES");
-                println!("{:?}", a.dot(&b).into_dyn() + biases);
-                println!();
-                println!();
-
-                Algebra::sigmoid(a.dot(&b).into_dyn() + biases)
+                info!("Interim: {:?}", interim);
+                info!("Weights:\n{:?}", weights);
+                info!("Biases: {:?}", biases);
+                Algebra::sigmoid(interim.dot(weights) + biases)
             })
     }
 }
@@ -134,14 +115,27 @@ mod tests {
     }
 
     #[test]
-    fn ff() {
-        let layers_sizes = vec![4, 3, 2];
-
+    fn outputs_value_for_each_neuron_in_last_layer() {
+        let layers_sizes = vec![8, 5, 3];
         let network = NeuralNetwork::from(layers_sizes.clone());
 
-        let y = network.feed_forward(array![1., 1., 1., 1.].into_dyn());
+        let input = array![-2., -1., 0., 1., 2., 3., 4., 5.];
+        let actual = network.feed_forward(input);
 
-        println!("RESULT");
-        println!("{:?}", y);
+        assert_eq!(actual.len(), *layers_sizes.last().unwrap());
+    }
+
+    #[test]
+    fn outputs_values_within_sigmoid_range() {
+        let layers_sizes = vec![8, 5, 100];
+        let network = NeuralNetwork::from(layers_sizes.clone());
+
+        let input = array![-2., -1., 0., 1., 2., 3., 4., 5.];
+        let actual = network.feed_forward(input);
+
+        for actual_value in actual.into_raw_vec().iter() {
+            assert!(*actual_value < 1.0);
+            assert!(*actual_value > -1.0);
+        }
     }
 }
