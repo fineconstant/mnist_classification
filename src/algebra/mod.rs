@@ -1,5 +1,4 @@
 use ndarray::prelude::*;
-use ndarray::{Dim, IntoDimension};
 
 pub struct Algebra;
 

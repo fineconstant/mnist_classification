@@ -4,7 +4,6 @@ use arrays_random::StandardNormalDistribution;
 use ndarray::prelude::*;
 
 use crate::algebra::Algebra;
-use crate::infrastructure::logging;
 
 use log::*;
 
