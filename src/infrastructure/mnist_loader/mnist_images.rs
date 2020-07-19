@@ -5,7 +5,6 @@ pub struct MnistImages {
     images: Vec<Vec<u8>>,
 }
 
-// todo: tests
 impl MnistImages {
     pub fn new(number_of_images: u32, images: Vec<Vec<u8>>) -> MnistImages {
         MnistImages {
