@@ -6,7 +6,7 @@ use log::*;
 
 use crate::infrastructure::mnist_loader::file_reader::FileReader;
 
-struct FlatFileReader;
+pub struct FlatFileReader;
 
 impl FileReader<BufReader<File>> for FlatFileReader {
     fn read(path: &str) -> Result<BufReader<File>, Error> {
