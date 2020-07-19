@@ -18,17 +18,16 @@ impl FileReader<BufReader<File>> for FlatFileReader {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
-    use std::io::ErrorKind;
+    use std::io::{BufRead, ErrorKind, Write};
 
     use tempfile::*;
 
     use super::*;
 
     #[test]
-    fn reads_file_that_exists() {
+    fn opens_file_that_exists() {
         let file = NamedTempFile::new().unwrap();
         let path = file.path().to_str().unwrap();
 
@@ -46,5 +45,20 @@ mod tests {
 
         let expected = ErrorKind::NotFound;
         assert_eq!(actual.unwrap_err(), expected);
+    }
+
+    #[test]
+    fn reads_file_contents() {
+        let mut file = NamedTempFile::new().unwrap();
+        let test_data = "test";
+        file.write_all(test_data.as_bytes()).unwrap();
+
+        let path = file.path().to_str().unwrap();
+        let file = &mut FlatFileReader::read(path).unwrap();
+
+        let mut line = String::new();
+        file.read_line(&mut line).unwrap();
+
+        assert_eq!(line, test_data)
     }
 }
