@@ -9,7 +9,6 @@ use crate::infrastructure::mnist_loader::file_reader::FileReader;
 
 pub struct GZFileReader;
 
-// todo: tests
 impl FileReader<GzDecoder<File>> for GZFileReader {
     fn read(path: &str) -> Result<GzDecoder<File>, Error> {
         info!("Attempting to read .gz file: {}", path);
