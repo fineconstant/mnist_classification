@@ -1,1 +1,4 @@
 = MNIST Classification
+
+
+http://neuralnetworksanddeeplearning.com/chap1.html#exercise_717502

@@ -1,10 +1,11 @@
 extern crate log;
 
 
+use log::*;
+
+
 use mnist_classification::infrastructure::logging;
 use mnist_classification::infrastructure::mnist_loader::*;
-
-use log::*;
 use mnist_classification::prelude::NeuralNetwork;
 
 fn main() {
@@ -12,8 +13,8 @@ fn main() {
     let labels_path = "resources/t10k-labels-idx1-ubyte.gz";
     let images_path = "resources/t10k-images-idx3-ubyte.gz";
 
-    let mnist_labels = MnistDataLoader::load_labels(labels_path).unwrap();
-    let mnist_images = MnistDataLoader::load_images(images_path).unwrap();
+    let mnist_labels = MnistGzFileLoader::load_labels(labels_path).unwrap();
+    let mnist_images = MnistGzFileLoader::load_images(images_path).unwrap();
 
     info!("{}", mnist_labels);
     info!("{}", mnist_images);

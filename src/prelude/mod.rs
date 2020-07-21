@@ -4,14 +4,21 @@ use arrays_random::StandardNormalDistribution;
 use ndarray::prelude::*;
 
 use crate::algebra::Algebra;
+use crate::infrastructure::logging;
 
 use log::*;
+
+use ndarray_rand::rand::rngs::ThreadRng;
+use ndarray_rand::rand::seq::SliceRandom;
+use ndarray_rand::rand::thread_rng;
+use std::borrow::BorrowMut;
 
 pub struct NeuralNetwork {
     layers_number: usize,
     layers_sizes: Vec<usize>,
     weights: Vec<Array2<f32>>,
     biases: Vec<Array1<f32>>,
+    rng: ThreadRng,
 }
 
 impl NeuralNetwork {
@@ -51,6 +58,7 @@ impl NeuralNetwork {
             layers_sizes,
             weights,
             biases,
+            rng: thread_rng(),
         }
     }
 
@@ -63,18 +71,130 @@ impl NeuralNetwork {
         self.weights
             .iter()
             .zip(self.biases.iter())
-            .fold(input, |interim, (weights, biases)| {
-                info!("Interim: {:?}", interim);
-                info!("Weights:\n{:?}", weights);
-                info!("Biases: {:?}", biases);
-                Algebra::sigmoid(interim.dot(weights) + biases)
+            .fold(input, |acc, (weights, biases)| {
+                debug!("Acc: {:?}", acc);
+                debug!("Weights:\n{:?}", weights);
+                debug!("Biases: {:?}", biases);
+                Algebra::sigmoid(acc.dot(weights) + biases)
             })
     }
+
+    /// Trains the neural network using mini-batch stochastic gradient descent.
+    ///
+    /// `epochs` - defines for how many epochs to train the network.
+    ///
+    /// `mini_batch_size` - defines size of a batch used when sampling.
+    ///
+    /// `eta` (η) - is the learning rate - the step size when performing gradient descent.
+    ///
+    /// `training_data` - is a list of tuples (x, y) representing the training inputs and
+    /// corresponding desired outputs.
+    ///
+    /// If the optional argument `test_data` is supplied, then the program will evaluate
+    /// the network after each epoch of training, and print out partial progress.
+    /// This is useful for tracking progress, but slows things down substantially
+    fn stochastic_gradient_descend(
+        &mut self,
+        epochs: u32,
+        mini_batch_size: usize,
+        eta: u32,
+        training_data: &mut Vec<TestData>,
+        test_data_option: Option<Vec<TestData>>,
+    ) {
+        let training_data_size = training_data.len();
+        info!("Training data size: {}", training_data_size);
+
+        let test_data = match test_data_option {
+            Some(x) => x,
+            None => vec![],
+        };
+
+        for epoch in 0..epochs {
+            info!("Learning epoch: {}", epoch);
+
+            training_data.shuffle(&mut self.rng);
+            // training_data.shuffle(&mut thread_rng());
+
+            // for mini_batch in training_data.chunks(mini_batch_size) {
+            //     self.update_mini_batch(mini_batch.data, eta);
+            //
+            //     if !test_data.is_empty() {
+            //         // self.evaluate(test_data)
+            //     }
+            // }
+        }
+    }
+
+    fn update_mini_batch(&mut self, mini_batch: &Vec<TestData>, eta: u32) {
+        let _nabla_weights = self
+            .weights
+            .iter()
+            .map(|weights| Array2::zeros(weights.dim()))
+            .collect::<Vec<Array2<f32>>>();
+
+        let _nabla_biases = self
+            .biases
+            .iter()
+            .map(|bias| Array1::zeros(bias.dim()))
+            .collect::<Vec<Array1<f32>>>();
+
+        for batch_item in mini_batch {
+            let (delta_nabla_weights, delta_nabla_biases) = self.back_propagate(1., 2.);
+        }
+
+        // println!("{:?}", mini_batch)
+    }
+
+    fn back_propagate(&mut self, x: f32, y: f32) -> (Array2<f32>, Array1<f32>) {
+        println!("x: {}, y: {}", x, y);
+        (array![[1., 2.], [3., 4.]], array![1., 2., 3., 4.])
+    }
+
+    /// Evaluate the network and print out partial progress.
+    ///
+    /// Warning: slows down learning substantially!
+    fn evaluate(&mut self, test_dataset: Vec<TestData>) {
+        // test_dataset.iter().map(|test_data| {
+        //     let output = self.feed_forward(test_data.data);
+        //     // todo: find index of max element
+        // });
+
+        // for data in test_data {
+        //   let output = self.feed_forward(data.data);
+        //
+        // };
+    }
+}
+
+struct TestData {
+    pub data: Array1<f32>,
+    label: u32,
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn foo() {
+        logging::init_tests();
+
+        let layers_sizes = vec![8, 5, 3];
+        let mut network = NeuralNetwork::from(layers_sizes.clone());
+
+        let input = array![-2., -1., 0., 1., 2., 3., 4., 5.];
+
+        network.stochastic_gradient_descend(
+            10,
+            30,
+            1,
+            &mut vec![TestData {
+                data: array![-2., -1., 0., 1., 2., 3., 4., 5.],
+                label: 1,
+            }],
+            Option::None,
+        )
+    }
 
     #[test]
     fn initializes_neural_network() {
