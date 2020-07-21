@@ -1,4 +1,8 @@
 = MNIST Classification
 
+Based on http://neuralnetworksanddeeplearning.com/chap1.html#exercise_717502[Neural Networks and Deep Learning]
 
-http://neuralnetworksanddeeplearning.com/chap1.html#exercise_717502
+
+Libraries used:
+
+* https://docs.rs/error-chain/0.12.2/error_chain/[error-chain]
