@@ -1,5 +1,4 @@
 use std::fs::File;
-use std::io::Error;
 use std::path::Path;
 
 use flate2::read::GzDecoder;
@@ -10,7 +9,7 @@ use crate::infrastructure::mnist_loader::file_reader::FileReader;
 pub struct GZFileReader;
 
 impl FileReader<GzDecoder<File>> for GZFileReader {
-    fn read(path: &str) -> Result<GzDecoder<File>, Error> {
+    fn read(path: &str) -> Result<GzDecoder<File>, std::io::Error> {
         info!("Attempting to read .gz file: {}", path);
         let buf_path = Path::new(path);
         info!("Reading .gz file: {:?}", buf_path.canonicalize()?);
@@ -52,11 +51,11 @@ mod tests {
 
     #[test]
     fn reads_file_contents() {
-        let file = &NamedTempFile::new().unwrap();
+        let file = NamedTempFile::new().unwrap();
         let path = file.path().to_str().unwrap();
 
         let test_data = "test";
-        let mut encoder = write::GzEncoder::new(file, Compression::fast());
+        let mut encoder = write::GzEncoder::new(&file, Compression::fast());
         encoder.write_all(test_data.as_bytes()).unwrap();
         encoder.finish().unwrap();
 
