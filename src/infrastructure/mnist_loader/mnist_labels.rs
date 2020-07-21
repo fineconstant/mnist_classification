@@ -1,5 +1,6 @@
 use std::fmt::{Display, Formatter};
 
+#[derive(Eq, PartialEq, Debug)]
 pub struct MnistLabels {
     number_of_labels: u32,
     labels: Vec<u8>,

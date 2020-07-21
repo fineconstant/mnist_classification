@@ -176,9 +176,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn foo() {
-        logging::init_tests();
-
+    fn wip() {
         let layers_sizes = vec![8, 5, 3];
         let mut network = NeuralNetwork::from(layers_sizes.clone());
 

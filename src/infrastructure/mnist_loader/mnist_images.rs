@@ -1,5 +1,6 @@
 use std::fmt::{Display, Formatter};
 
+#[derive(Eq, PartialEq, Debug)]
 pub struct MnistImages {
     number_of_images: u32,
     images: Vec<Vec<u8>>,

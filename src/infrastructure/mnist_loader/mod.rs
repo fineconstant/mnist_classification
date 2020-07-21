@@ -1,19 +1,19 @@
-use std::io::Error;
 use std::io::prelude::*;
 
+use error_chain::*;
 use log::*;
+use ndarray::Array1;
 
+use crate::infrastructure::mnist_loader::errors::{Error, ErrorKind};
 use crate::infrastructure::mnist_loader::file_reader::FileReader;
 use crate::infrastructure::mnist_loader::file_reader::gz_file_reader::GZFileReader;
-use crate::infrastructure::mnist_loader::mnist_errors::MnistFileFormatError;
 use crate::infrastructure::mnist_loader::mnist_images::MnistImages;
 use crate::infrastructure::mnist_loader::mnist_labels::MnistLabels;
-use ndarray::Array1;
 
 mod mnist_labels;
 mod mnist_images;
 mod file_reader;
-mod mnist_errors;
+mod errors;
 
 const LABELS_MAGIC_NUMBER: u32 = 2049;
 const IMAGES_MAGIC_NUMBER: u32 = 2051;
@@ -47,10 +47,10 @@ impl MnistFileLoader for MnistGzFileLoader {
         let magic_number = u32::from_be_bytes(buffer_32);
 
         match magic_number {
-            LABELS_MAGIC_NUMBER => Ok(()),
-            IMAGES_MAGIC_NUMBER => Err(MnistFileFormatError::images_instead_of_labels()),
-            _ => Err(MnistFileFormatError::magic_number_error())
-        }.unwrap();
+            LABELS_MAGIC_NUMBER => Result::<(), Error>::Ok(()),
+            IMAGES_MAGIC_NUMBER => bail!(ErrorKind::ImagesInsteadOfLabelsMagicNumber),
+            _ => bail!(ErrorKind::InvalidMagicNumber(magic_number))
+        };
 
         mnist_file.read_exact(&mut buffer_32)?;
         let number_of_labels = u32::from_be_bytes(buffer_32);
@@ -62,7 +62,7 @@ impl MnistFileLoader for MnistGzFileLoader {
         Ok(MnistLabels::new(number_of_labels, labels))
     }
 
-    fn load_images(path: &str) -> Result<MnistImages, std::io::Error> {
+    fn load_images(path: &str) -> Result<MnistImages, Error> {
         info!("Loading images");
         let mnist_file = &mut GZFileReader::read(path)?;
 
@@ -71,10 +71,10 @@ impl MnistFileLoader for MnistGzFileLoader {
         let magic_number = u32::from_be_bytes(buffer_32);
 
         match magic_number {
-            LABELS_MAGIC_NUMBER => Err(MnistFileFormatError::labels_instead_of_images()),
-            IMAGES_MAGIC_NUMBER => Ok(()),
-            _ => Err(MnistFileFormatError::magic_number_error())
-        }.unwrap();
+            IMAGES_MAGIC_NUMBER => Result::<(), Error>::Ok(()),
+            LABELS_MAGIC_NUMBER => bail!(ErrorKind::LabelsInsteadOfImagesMagicNumber),
+            _ => bail!(ErrorKind::InvalidMagicNumber(magic_number))
+        };
 
         mnist_file.read_exact(&mut buffer_32)?;
         let number_of_images = u32::from_be_bytes(buffer_32);

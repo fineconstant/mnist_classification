@@ -1,8 +1,4 @@
-extern crate log;
-
-
 use log::*;
-
 
 use mnist_classification::infrastructure::logging;
 use mnist_classification::infrastructure::mnist_loader::*;
