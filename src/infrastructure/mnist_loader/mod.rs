@@ -108,8 +108,6 @@ impl MnistFileLoader for MnistGzFileLoader {
 
 #[cfg(test)]
 mod tests {
-    use std::error::Error;
-
     use flate2::{Compression, write};
     use tempfile::NamedTempFile;
 
@@ -121,10 +119,9 @@ mod tests {
             let actual_vector = MnistGzFileLoader::vectorize(x);
 
             let actual = actual_vector[x as usize];
-
             let expected = 1.0f32;
             assert_eq!(actual_vector.len(), 10);
-            assert_eq!(actual, expected);
+            assert_ulps_eq!(actual, expected);
         }
     }
 
@@ -138,7 +135,7 @@ mod tests {
                 if x != i {
                     let actual = actual_vector[i as usize];
                     let expected = 0.0f32;
-                    assert_eq!(actual, expected);
+                    assert_ulps_eq!(actual, expected);
                 }
             }
         }
