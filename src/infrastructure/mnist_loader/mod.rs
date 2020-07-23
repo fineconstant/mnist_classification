@@ -4,39 +4,29 @@ use std::io::prelude::*;
 use error_chain::*;
 use flate2::read::GzDecoder;
 use log::*;
-use ndarray::Array1;
 
-use crate::infrastructure::mnist_loader::errors::{Error, ErrorKind};
+use crate::infrastructure::mnist_loader::error::{Error, ErrorKind};
 use crate::infrastructure::mnist_loader::file_reader::FileReader;
 use crate::infrastructure::mnist_loader::file_reader::gz_file_reader::GZFileReader;
-use crate::infrastructure::mnist_loader::mnist_images::MnistImages;
-use crate::infrastructure::mnist_loader::mnist_labels::MnistLabels;
+use crate::infrastructure::mnist_loader::raw::images::MnistRawImages;
+use crate::infrastructure::mnist_loader::raw::labels::MnistRawLabels;
 
-mod mnist_labels;
-mod mnist_images;
+mod raw;
 mod file_reader;
-mod errors;
+mod error;
+pub mod dataset;
 
 const LABELS_MAGIC_NUMBER: u32 = 2049;
 const IMAGES_MAGIC_NUMBER: u32 = 2051;
 
 pub trait MnistFileLoader {
-    fn load_labels(path: &str) -> Result<MnistLabels, Error>;
-    fn load_images(path: &str) -> Result<MnistImages, Error>;
+    fn load_labels(path: &str) -> Result<MnistRawLabels, Error>;
+    fn load_images(path: &str) -> Result<MnistRawImages, Error>;
 }
 
 pub struct MnistGzFileLoader;
 
 impl MnistGzFileLoader {
-    /// Returns a 10-dimensional unit vector with a 1.0 in the x-th position and zeroes elsewhere.
-    /// This is used to convert a digit into a corresponding desired output from the neural network.
-    pub fn vectorize(x: u8) -> Array1<f32> {
-        let mut arr = Array1::from(vec![0.0f32; 10]);
-        arr[x as usize] = 1.0f32;
-
-        arr
-    }
-
     fn read_magic_number(mnist_file: &mut GzDecoder<File>) -> Result<u32, Error> {
         let mut buffer_32 = [0; 4];
         mnist_file.read_exact(&mut buffer_32)?;
@@ -45,7 +35,7 @@ impl MnistGzFileLoader {
 }
 
 impl MnistFileLoader for MnistGzFileLoader {
-    fn load_labels(path: &str) -> Result<MnistLabels, Error> {
+    fn load_labels(path: &str) -> Result<MnistRawLabels, Error> {
         info!("Loading labels");
         let mnist_file = &mut GZFileReader::read(path)?;
         let magic_number = MnistGzFileLoader::read_magic_number(mnist_file)?;
@@ -64,10 +54,10 @@ impl MnistFileLoader for MnistGzFileLoader {
         let mut labels: Vec<u8> = Vec::with_capacity(number_of_labels as usize);
         mnist_file.read_to_end(&mut labels)?;
 
-        Ok(MnistLabels::new(number_of_labels, labels))
+        Ok(MnistRawLabels::new(number_of_labels, labels))
     }
 
-    fn load_images(path: &str) -> Result<MnistImages, Error> {
+    fn load_images(path: &str) -> Result<MnistRawImages, Error> {
         info!("Loading images");
         let mnist_file = &mut GZFileReader::read(path)?;
         let magic_number = MnistGzFileLoader::read_magic_number(mnist_file)?;
@@ -103,7 +93,7 @@ impl MnistFileLoader for MnistGzFileLoader {
                 acc
             });
 
-        Ok(MnistImages::new(number_of_images, images))
+        Ok(MnistRawImages::new(number_of_images, images))
     }
 }
 
@@ -113,34 +103,6 @@ mod tests {
     use tempfile::NamedTempFile;
 
     use super::*;
-
-    #[test]
-    fn vectorizes_from_zero_to_nine() {
-        for x in 0u8..10 {
-            let actual_vector = MnistGzFileLoader::vectorize(x);
-
-            let actual = actual_vector[x as usize];
-            let expected = 1.0f32;
-            assert_eq!(actual_vector.len(), 10);
-            assert_ulps_eq!(actual, expected);
-        }
-    }
-
-    #[test]
-    fn zero_on_other_places() {
-        for x in 0..10 {
-            let actual_vector = MnistGzFileLoader::vectorize(x);
-            assert_eq!(actual_vector.len(), 10);
-
-            for i in 0..10 {
-                if x != i {
-                    let actual = actual_vector[i as usize];
-                    let expected = 0.0f32;
-                    assert_ulps_eq!(actual, expected);
-                }
-            }
-        }
-    }
 
     #[test]
     fn loads_labels_from_valid_file() {
@@ -157,7 +119,7 @@ mod tests {
 
         let actual = MnistGzFileLoader::load_labels(path).unwrap();
 
-        let expected = MnistLabels::new(labels.len() as u32, labels);
+        let expected = MnistRawLabels::new(labels.len() as u32, labels);
         assert_eq!(actual, expected);
     }
 

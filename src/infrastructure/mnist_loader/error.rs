@@ -20,5 +20,10 @@ error_chain! {
             description("Invalid MNIST Magic Number")
             display("Expected u32 2049 or 2051 but got: '{}'", cause)
         }
+
+        IncompatibleDatasets(num_labels:u32, num_images:u32) {
+            description("Did not get the same number of labels and images")
+            display("Expected the same number of labels and images but got: '{}' labels, {} images", num_labels, num_images)
+        }
     }
 }

@@ -1,17 +1,18 @@
-mod arrays_random;
-
-use arrays_random::StandardNormalDistribution;
-use ndarray::prelude::*;
-
-use crate::algebra::Algebra;
-use crate::infrastructure::logging;
+use std::borrow::BorrowMut;
 
 use log::*;
-
+use ndarray::prelude::*;
 use ndarray_rand::rand::rngs::ThreadRng;
 use ndarray_rand::rand::seq::SliceRandom;
 use ndarray_rand::rand::thread_rng;
-use std::borrow::BorrowMut;
+
+use arrays_random::StandardNormalDistribution;
+
+use crate::algebra::Algebra;
+use crate::infrastructure::logging;
+use crate::infrastructure::mnist_loader::dataset::MnistImage;
+
+mod arrays_random;
 
 pub struct NeuralNetwork {
     layers_number: usize,
@@ -98,8 +99,8 @@ impl NeuralNetwork {
         epochs: u32,
         mini_batch_size: usize,
         eta: u32,
-        training_data: &mut Vec<TestData>,
-        test_data_option: Option<Vec<TestData>>,
+        training_data: &mut Vec<MnistImage>,
+        test_data_option: Option<Vec<MnistImage>>,
     ) {
         let training_data_size = training_data.len();
         info!("Training data size: {}", training_data_size);
@@ -125,7 +126,7 @@ impl NeuralNetwork {
         }
     }
 
-    fn update_mini_batch(&mut self, mini_batch: &Vec<TestData>, eta: u32) {
+    fn update_mini_batch(&mut self, mini_batch: &Vec<MnistImage>, eta: u32) {
         let _nabla_weights = self
             .weights
             .iter()
@@ -153,7 +154,7 @@ impl NeuralNetwork {
     /// Evaluate the network and print out partial progress.
     ///
     /// Warning: slows down learning substantially!
-    fn evaluate(&mut self, test_dataset: Vec<TestData>) {
+    fn evaluate(&mut self, test_dataset: Vec<MnistImage>) {
         // test_dataset.iter().map(|test_data| {
         //     let output = self.feed_forward(test_data.data);
         //     // todo: find index of max element
@@ -164,11 +165,6 @@ impl NeuralNetwork {
         //
         // };
     }
-}
-
-struct TestData {
-    pub data: Array1<f32>,
-    label: u32,
 }
 
 #[cfg(test)]
@@ -182,16 +178,16 @@ mod tests {
 
         let input = array![-2., -1., 0., 1., 2., 3., 4., 5.];
 
-        network.stochastic_gradient_descend(
-            10,
-            30,
-            1,
-            &mut vec![TestData {
-                data: array![-2., -1., 0., 1., 2., 3., 4., 5.],
-                label: 1,
-            }],
-            Option::None,
-        )
+        // network.stochastic_gradient_descend(
+        //     10,
+        //     30,
+        //     1,
+        //     &mut vec![TestData {
+        //         data: array![-2., -1., 0., 1., 2., 3., 4., 5.],
+        //         label: 1,
+        //     }],
+        //     Option::None,
+        // )
     }
 
     #[test]
