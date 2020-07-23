@@ -1,6 +1,8 @@
+use std::fs::File;
 use std::io::prelude::*;
 
 use error_chain::*;
+use flate2::read::GzDecoder;
 use log::*;
 use ndarray::Array1;
 
@@ -34,19 +36,19 @@ impl MnistGzFileLoader {
 
         arr
     }
+
+    fn read_magic_number(mnist_file: &mut GzDecoder<File>) -> Result<u32, Error> {
+        let mut buffer_32 = [0; 4];
+        mnist_file.read_exact(&mut buffer_32)?;
+        Ok(u32::from_be_bytes(buffer_32))
+    }
 }
 
-// todo: tests
-// todo: refactor
-// todo: https://docs.rs/error-chain/0.12.2/error_chain/#chaining-errors
 impl MnistFileLoader for MnistGzFileLoader {
     fn load_labels(path: &str) -> Result<MnistLabels, Error> {
         info!("Loading labels");
         let mnist_file = &mut GZFileReader::read(path)?;
-
-        let mut buffer_32 = [0; 4];
-        mnist_file.read_exact(&mut buffer_32)?;
-        let magic_number = u32::from_be_bytes(buffer_32);
+        let magic_number = MnistGzFileLoader::read_magic_number(mnist_file)?;
 
         let _ = match magic_number {
             LABELS_MAGIC_NUMBER => Result::<(), Error>::Ok(()),
@@ -54,6 +56,7 @@ impl MnistFileLoader for MnistGzFileLoader {
             _ => bail!(ErrorKind::InvalidMagicNumber(magic_number))
         };
 
+        let mut buffer_32 = [0; 4];
         mnist_file.read_exact(&mut buffer_32)?;
         let number_of_labels = u32::from_be_bytes(buffer_32);
         info!("Number of labels: {}", number_of_labels);
@@ -67,10 +70,7 @@ impl MnistFileLoader for MnistGzFileLoader {
     fn load_images(path: &str) -> Result<MnistImages, Error> {
         info!("Loading images");
         let mnist_file = &mut GZFileReader::read(path)?;
-
-        let mut buffer_32 = [0; 4];
-        mnist_file.read_exact(&mut buffer_32)?;
-        let magic_number = u32::from_be_bytes(buffer_32);
+        let magic_number = MnistGzFileLoader::read_magic_number(mnist_file)?;
 
         let _ = match magic_number {
             IMAGES_MAGIC_NUMBER => Result::<(), Error>::Ok(()),
@@ -78,6 +78,7 @@ impl MnistFileLoader for MnistGzFileLoader {
             _ => bail!(ErrorKind::InvalidMagicNumber(magic_number))
         };
 
+        let mut buffer_32 = [0; 4];
         mnist_file.read_exact(&mut buffer_32)?;
         let number_of_images = u32::from_be_bytes(buffer_32);
 
@@ -149,9 +150,9 @@ mod tests {
 
         let magic_number = LABELS_MAGIC_NUMBER.to_be_bytes();
         let labels = (0u8..20).collect::<Vec<_>>();
-        encoder.write(&magic_number);
-        encoder.write(&(labels.len() as u32).to_be_bytes());
-        encoder.write(labels.as_slice());
+        let _ = encoder.write(&magic_number);
+        let _ = encoder.write(&(labels.len() as u32).to_be_bytes());
+        let _ = encoder.write(labels.as_slice());
         encoder.finish().unwrap();
 
         let actual = MnistGzFileLoader::load_labels(path).unwrap();
@@ -160,65 +161,88 @@ mod tests {
         assert_eq!(actual, expected);
     }
 
-    // #[test]
-    // fn error_when_labels_file_not_found() {
-    //     // let actual = MnistGzFileLoader::load_labels("foo").map_err(|e| e.kind());
-    //     let actual = MnistGzFileLoader::load_labels("foo");
-    //     let expected = ErrorKind::NotFound;
-    //     assert_eq!(actual.unwrap_err().to_string(), "expected");
-    // }
+    #[test]
+    fn error_when_labels_file_not_found() {
+        let actual = MnistGzFileLoader::load_labels("foo");
+        let expected = "The system cannot find the file specified. (os error 2)";
+        assert_eq!(actual.unwrap_err().to_string(), expected);
+    }
 
-    // #[test]
-    // fn error_when_images_file_not_found() {
-    //     let actual = MnistGzFileLoader::load_images("foo").map_err(|e| e.kind());
-    //     let expected = ErrorKind::NotFound;
-    //     assert_eq!(actual.unwrap_err(), expected);
-    // }
-    //
-    // #[test]
-    // fn error_when_empty_labels_file() {
-    //     let file = NamedTempFile::new().unwrap();
-    //     let path = file.path().to_str().unwrap();
-    //     let mut encoder = write::GzEncoder::new(&file, Compression::fast());
-    //
-    //     let actual = MnistGzFileLoader::load_labels(&path).map_err(|e| e.kind());
-    //
-    //     let expected = ErrorKind::UnexpectedEof;
-    //     assert_eq!(actual.unwrap_err(), expected);
-    // }
-    //
-    // #[test]
-    // fn error_when_empty_images_file() {
-    //     let file = NamedTempFile::new().unwrap();
-    //     let path = file.path().to_str().unwrap();
-    //     let mut encoder = write::GzEncoder::new(&file, Compression::fast());
-    //
-    //     let actual = MnistGzFileLoader::load_images(&path).map_err(|e| e.kind());
-    //
-    //     let expected = ErrorKind::UnexpectedEof;
-    //     assert_eq!(actual.unwrap_err(), expected);
-    // }
-    //
-    // #[test]
-    // fn error_when_invalid_labels_header() {
-    //     let file = NamedTempFile::new().unwrap();
-    //     let path = file.path().to_str().unwrap();
-    //     let mut encoder = write::GzEncoder::new(&file, Compression::fast());
-    //
-    //     let magic_number = IMAGES_MAGIC_NUMBER.to_be_bytes();
-    //     encoder.write(&magic_number);
-    //     encoder.finish().unwrap();
-    //
-    //     let actual = MnistGzFileLoader::load_labels(&path).map_err(|e| e.kind());
-    //     let expected = ErrorKind::NotFound;
-    //     // assert_eq!(actual.unwrap_err(), expected);
-    // }
+    #[test]
+    fn error_when_images_file_not_found() {
+        let actual = MnistGzFileLoader::load_images("foo");
+        let expected = "The system cannot find the file specified. (os error 2)";
+        assert_eq!(actual.unwrap_err().to_string(), expected);
+    }
 
-    // #[test]
-    // fn error_when_could_not_read_images_header() {
-    //     let actual = MnistGzFileLoader::load_images("foo").map_err(|e| e.kind());
-    //     let expected = ErrorKind::NotFound;
-    //     assert_eq!(actual.unwrap_err(), expected);
-    // }
+    #[test]
+    fn error_when_empty_labels_file() {
+        let file = NamedTempFile::new().unwrap();
+        let path = file.path().to_str().unwrap();
+
+        let actual = MnistGzFileLoader::load_labels(&path);
+
+        let expected = "failed to fill whole buffer";
+        assert_eq!(actual.unwrap_err().to_string(), expected);
+    }
+
+    #[test]
+    fn error_when_empty_images_file() {
+        let file = NamedTempFile::new().unwrap();
+        let path = file.path().to_str().unwrap();
+
+        let actual = MnistGzFileLoader::load_images(&path);
+
+        let expected = "failed to fill whole buffer";
+        assert_eq!(actual.unwrap_err().to_string(), expected);
+    }
+
+    #[test]
+    fn error_when_images_instead_of_labels_header() {
+        let file = NamedTempFile::new().unwrap();
+        let path = file.path().to_str().unwrap();
+        let mut encoder = write::GzEncoder::new(&file, Compression::fast());
+
+        let magic_number = IMAGES_MAGIC_NUMBER.to_be_bytes();
+        let _ = encoder.write(&magic_number);
+        encoder.finish().unwrap();
+
+        let actual = MnistGzFileLoader::load_labels(&path);
+
+        let expected = "Expected 2049 but got 2051";
+        assert_eq!(actual.unwrap_err().to_string(), expected);
+    }
+
+    #[test]
+    fn error_when_labels_instead_of_images_header() {
+        let file = NamedTempFile::new().unwrap();
+        let path = file.path().to_str().unwrap();
+        let mut encoder = write::GzEncoder::new(&file, Compression::fast());
+
+        let magic_number = LABELS_MAGIC_NUMBER.to_be_bytes();
+        let _ = encoder.write(&magic_number);
+        encoder.finish().unwrap();
+
+        let actual = MnistGzFileLoader::load_images(&path);
+
+        let expected = "Expected 2051 but got 2049";
+        assert_eq!(actual.unwrap_err().to_string(), expected);
+    }
+
+    #[test]
+    fn error_when_could_not_read_images_header() {
+        let file = NamedTempFile::new().unwrap();
+        let path = file.path().to_str().unwrap();
+        let mut encoder = write::GzEncoder::new(&file, Compression::fast());
+
+        let magic_number = 128u32.to_be_bytes();
+        let _ = encoder.write(&magic_number);
+        encoder.finish().unwrap();
+
+        let actual = MnistGzFileLoader::load_images(&path);
+
+        let expected = "Expected u32 2049 or 2051 but got: '128'";
+        assert_eq!(actual.unwrap_err().to_string(), expected);
+    }
 }
 
