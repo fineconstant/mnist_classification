@@ -14,7 +14,7 @@ pub struct MnistImage {
 }
 
 impl MnistImage {
-    pub fn new_dataset(raw_images: MnistRawImages, raw_labels: MnistRawLabels) -> Result<Vec<MnistImage>, Error> {
+    pub fn new(raw_images: MnistRawImages, raw_labels: MnistRawLabels) -> Result<Vec<MnistImage>, Error> {
         if raw_images.number_of_images != raw_labels.number_of_labels {
             bail!(ErrorKind::IncompatibleDatasets(raw_labels.number_of_labels,raw_images.number_of_images));
         }

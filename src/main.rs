@@ -19,7 +19,7 @@ fn main() {
     info!("{}", mnist_images);
     info!("{}", mnist_labels);
 
-    let dataset = MnistImage::new_dataset(mnist_images, mnist_labels).unwrap();
+    let dataset = MnistImage::new(mnist_images, mnist_labels).unwrap();
 
 
     let _x = NeuralNetwork::from(vec![784, 20, 10]);
