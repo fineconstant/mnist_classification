@@ -17,7 +17,11 @@ impl MnistRawLabels {
 
 impl Display for MnistRawLabels {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "MnistLabels(number_of_labels: {})", self.number_of_labels)
+        write!(
+            f,
+            "MnistLabels(number_of_labels: {})",
+            self.number_of_labels
+        )
     }
 }
 

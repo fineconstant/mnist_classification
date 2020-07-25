@@ -17,7 +17,11 @@ impl MnistRawImages {
 
 impl Display for MnistRawImages {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "MnistImages(number_of_images: {})", self.number_of_images)
+        write!(
+            f,
+            "MnistImages(number_of_images: {})",
+            self.number_of_images
+        )
     }
 }
 
@@ -36,4 +40,3 @@ mod tests {
         assert_eq!(actual.images, images);
     }
 }
-
