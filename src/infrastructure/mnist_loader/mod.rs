@@ -6,15 +6,15 @@ use flate2::read::GzDecoder;
 use log::*;
 
 use crate::infrastructure::mnist_loader::error::{Error, ErrorKind};
-use crate::infrastructure::mnist_loader::file_reader::FileReader;
 use crate::infrastructure::mnist_loader::file_reader::gz_file_reader::GZFileReader;
+use crate::infrastructure::mnist_loader::file_reader::FileReader;
 use crate::infrastructure::mnist_loader::raw::images::MnistRawImages;
 use crate::infrastructure::mnist_loader::raw::labels::MnistRawLabels;
 
-mod raw;
-mod file_reader;
-mod error;
 pub mod dataset;
+mod error;
+mod file_reader;
+mod raw;
 
 const LABELS_MAGIC_NUMBER: u32 = 2049;
 const IMAGES_MAGIC_NUMBER: u32 = 2051;
@@ -43,7 +43,7 @@ impl MnistFileLoader for MnistGzFileLoader {
         let _ = match magic_number {
             LABELS_MAGIC_NUMBER => Result::<(), Error>::Ok(()),
             IMAGES_MAGIC_NUMBER => bail!(ErrorKind::ImagesInsteadOfLabelsMagicNumber),
-            _ => bail!(ErrorKind::InvalidMagicNumber(magic_number))
+            _ => bail!(ErrorKind::InvalidMagicNumber(magic_number)),
         };
 
         let mut buffer_32 = [0; 4];
@@ -65,7 +65,7 @@ impl MnistFileLoader for MnistGzFileLoader {
         let _ = match magic_number {
             IMAGES_MAGIC_NUMBER => Result::<(), Error>::Ok(()),
             LABELS_MAGIC_NUMBER => bail!(ErrorKind::LabelsInsteadOfImagesMagicNumber),
-            _ => bail!(ErrorKind::InvalidMagicNumber(magic_number))
+            _ => bail!(ErrorKind::InvalidMagicNumber(magic_number)),
         };
 
         let mut buffer_32 = [0; 4];
@@ -84,14 +84,15 @@ impl MnistFileLoader for MnistGzFileLoader {
         info!("Number of columns: {}", number_of_columns);
         info!("Pixels per image: {}", pixels_per_image);
 
-        let images = (0..number_of_images)
-            .fold(Vec::new(), |mut acc: Vec<Vec<u8>>, _| {
-                let mut image_buffer: Vec<u8> = Vec::with_capacity(pixels_per_image as usize);
-                mnist_file.take(pixels_per_image as u64)
-                    .read_to_end(&mut image_buffer).unwrap();
-                acc.push(image_buffer);
-                acc
-            });
+        let images = (0..number_of_images).fold(Vec::new(), |mut acc: Vec<Vec<u8>>, _| {
+            let mut image_buffer: Vec<u8> = Vec::with_capacity(pixels_per_image as usize);
+            mnist_file
+                .take(pixels_per_image as u64)
+                .read_to_end(&mut image_buffer)
+                .unwrap();
+            acc.push(image_buffer);
+            acc
+        });
 
         Ok(MnistRawImages::new(number_of_images, images))
     }
@@ -99,7 +100,7 @@ impl MnistFileLoader for MnistGzFileLoader {
 
 #[cfg(test)]
 mod tests {
-    use flate2::{Compression, write};
+    use flate2::{write, Compression};
     use tempfile::NamedTempFile;
 
     use super::*;
@@ -207,4 +208,3 @@ mod tests {
         assert_eq!(actual.unwrap_err().to_string(), expected);
     }
 }
-
