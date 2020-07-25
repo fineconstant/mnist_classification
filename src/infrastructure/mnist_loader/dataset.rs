@@ -1,7 +1,7 @@
 use std::iter::FromIterator;
 use std::ops::Div;
 
-use ndarray::{Array1, Array2, Array};
+use ndarray::{Array1, Array};
 use error_chain::*;
 
 use crate::infrastructure::mnist_loader::raw::images::MnistRawImages;
@@ -10,6 +10,7 @@ use crate::infrastructure::mnist_loader::error::{Error, ErrorKind};
 use std::fmt::{Display, Formatter};
 
 pub struct MnistImage {
+    pub raw_label: usize,
     pub label: Array1<f32>,
     pub image: Array1<f32>,
 }
@@ -28,14 +29,14 @@ impl MnistImage {
                     .mapv(|v| v as f32)
                     .div(u8::MAX as f32);
 
-                MnistImage { label, image }
+                MnistImage { raw_label: *raw_label as usize, label, image }
             }).collect::<Vec<_>>();
 
         Ok(dataset)
     }
 
-    pub fn from(label: Array1<f32>, image: Array1<f32>) -> Vec<MnistImage> {
-        vec![MnistImage { label, image }]
+    pub fn from(raw_label: u8, label: Array1<f32>, image: Array1<f32>) -> Vec<MnistImage> {
+        vec![MnistImage { raw_label: raw_label as usize, label, image }]
     }
 
     /// Returns a 10-dimensional unit vector with a 1.0 in the x-th position and zeroes elsewhere.

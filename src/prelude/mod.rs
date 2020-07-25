@@ -1,4 +1,4 @@
-use std::borrow::BorrowMut;
+use std::ops::Sub;
 
 use log::*;
 use ndarray::prelude::*;
@@ -9,14 +9,14 @@ use ndarray_rand::rand::thread_rng;
 use arrays_random::StandardNormalDistribution;
 
 use crate::algebra::Algebra;
-use crate::infrastructure::logging;
 use crate::infrastructure::mnist_loader::dataset::MnistImage;
+use ndarray_stats::QuantileExt;
 
 mod arrays_random;
 
 pub struct NeuralNetwork {
     layers_number: usize,
-    layers_sizes: Vec<usize>,
+    _layers_sizes: Vec<usize>,
     weights: Vec<Array2<f32>>,
     biases: Vec<Array1<f32>>,
     rng: ThreadRng,
@@ -33,10 +33,7 @@ impl NeuralNetwork {
 
         let weights = tail
             .zip(drop_last)
-            // weights (neuron, weight)
             .map(|(x, y)| StandardNormalDistribution::from(&[*x, *y]))
-            // weights (weight, neuron)
-            // .map(|(x, y)| StandardNormalDistribution::from(&[*y, *x]))
             .map(|array| {
                 array.into_dimensionality::<Ix2>()
                     .expect("Failed converting weights into 2D array")
@@ -54,7 +51,7 @@ impl NeuralNetwork {
 
         NeuralNetwork {
             layers_number,
-            layers_sizes,
+            _layers_sizes: layers_sizes,
             weights,
             biases,
             rng: thread_rng(),
@@ -66,11 +63,11 @@ impl NeuralNetwork {
     /// Output is an(n, 1) array where n is number of neurons is passed through,
     ///
     /// Uses ndarray dot function: https://docs.rs/ndarray/0.13.1/ndarray/struct.ArrayBase.html#method.dot
-    fn feed_forward(self, input: Array1<f32>) -> Array1<f32> {
+    fn feed_forward(&mut self, input: &Array1<f32>) -> Array1<f32> {
         self.weights
             .iter()
             .zip(self.biases.iter())
-            .fold(input, |acc, (weights, biases)| {
+            .fold(input.to_owned(), |acc, (weights, biases)| {
                 debug!("Acc: {:?}", acc);
                 debug!("Weights:\n{:?}", weights);
                 debug!("Biases: {:?}", biases);
@@ -96,9 +93,9 @@ impl NeuralNetwork {
         &mut self,
         epochs: u32,
         mini_batch_size: usize,
-        eta: u32,
+        eta: f32,
         training_data: &mut Vec<MnistImage>,
-        test_data_option: Option<Vec<MnistImage>>,
+        test_data_option: Option<&Vec<MnistImage>>,
     ) -> &mut NeuralNetwork {
         let training_data_size = training_data.len();
         info!("Training data size: {}", training_data_size);
@@ -113,21 +110,19 @@ impl NeuralNetwork {
 
             match &test_data_option {
                 Some(test_data) => {
-                    // todo: implement 4 - logging
-                    // info!("Completed learning epoch: {}, {}", epoch,test_data.len());
-                    self.evaluate(test_data)
+                    let evaluation = self.evaluate(test_data);
+                    info!("Evaluation: {}/{}", evaluation, test_data.len());
                 }
-                None => {}
+                None => {
+                    info!("Finished learning epoch: {}/{}", epoch + 1, epochs);
+                }
             };
-
-            info!("Finished learning epoch: {}/{}", epoch + 1, epochs);
         }
 
         self
     }
 
-    // todo: logging
-    fn update_mini_batch(&mut self, mini_batch: &[MnistImage], eta: u32) {
+    fn update_mini_batch(&mut self, mini_batch: &[MnistImage], eta: f32) {
         let mut nabla_weights = self
             .weights
             .iter()
@@ -149,11 +144,11 @@ impl NeuralNetwork {
         }
 
         self.weights = self.weights.iter().zip(nabla_weights.iter())
-            .map(|(w, nw)| w.sub(eta as f32 / mini_batch.len() as f32) * nw)
+            .map(|(w, nw)| w.sub(eta / mini_batch.len() as f32) * nw)
             .collect::<Vec<_>>();
 
         self.biases = self.biases.iter().zip(nabla_biases.iter())
-            .map(|(b, nb)| b.sub(eta as f32 / mini_batch.len() as f32) * nb)
+            .map(|(b, nb)| b.sub(eta / mini_batch.len() as f32) * nb)
             .collect::<Vec<_>>();
     }
 
@@ -216,41 +211,22 @@ impl NeuralNetwork {
     /// Evaluate the network and print out partial progress.
     ///
     /// Warning: slows down learning substantially!
-    fn evaluate(&mut self, test_dataset: Vec<MnistImage>) {
-        // test_dataset.iter().map(|test_data| {
-        //     let output = self.feed_forward(test_data.data);
-        //     // todo: find index of max element
-        // });
+    fn evaluate(&mut self, test_dataset: &[MnistImage]) -> usize {
+        test_dataset.iter().map(|data| {
+            let output = self.feed_forward(&data.image)
+                .argmax().unwrap();
+            if output == data.raw_label { 1 } else { 0 }
+        }).sum()
+    }
 
-        // for data in test_data {
-        //   let output = self.feed_forward(data.data);
-        //
-        // };
+    fn cost_derivative(&mut self, output_activation: &Array1<f32>, label: &Array1<f32>) -> Array1<f32> {
+        output_activation.sub(label)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn wip() {
-        let layers_sizes = vec![8, 5, 3];
-        let mut network = NeuralNetwork::from(layers_sizes.clone());
-
-        let input = array![-2., -1., 0., 1., 2., 3., 4., 5.];
-
-        // network.stochastic_gradient_descend(
-        //     10,
-        //     30,
-        //     1,
-        //     &mut vec![TestData {
-        //         data: array![-2., -1., 0., 1., 2., 3., 4., 5.],
-        //         label: 1,
-        //     }],
-        //     Option::None,
-        // )
-    }
 
     #[test]
     fn initializes_neural_network() {
@@ -272,6 +248,7 @@ mod tests {
         let actual_biases = NeuralNetwork::from(layers_sizes.clone()).biases;
 
         for (bias_array, expected_len) in actual_biases.iter().zip(layers_sizes[1..].iter()) {
+            assert_eq!(bias_array.len(), *expected_len);
             assert_eq!(bias_array.len(), *expected_len)
         }
     }
@@ -287,23 +264,18 @@ mod tests {
             .zip(layers_sizes[1..].iter())
             .enumerate()
         {
-            // weights (neuron, weight)
             assert_eq!(weights_array.len_of(Axis(0)), *expected_len);
             assert_eq!(weights_array.len_of(Axis(1)), layers_sizes[idx]);
-
-            // weights (weight, neuron)
-            // assert_eq!(weights_array.len_of(Axis(0)), layers_sizes[idx]);
-            // assert_eq!(weights_array.len_of(Axis(1)), *expected_len);
         }
     }
 
     #[test]
     fn outputs_value_for_each_neuron_in_last_layer() {
         let layers_sizes = vec![5, 3, 3];
-        let network = NeuralNetwork::from(layers_sizes.clone());
+        let mut network = NeuralNetwork::from(layers_sizes.clone());
 
         let input = array![-1., 0., 1., 2., 3.];
-        let actual = network.feed_forward(input);
+        let actual = network.feed_forward(&input);
 
         assert_eq!(actual.len(), *layers_sizes.last().unwrap());
     }
@@ -311,10 +283,10 @@ mod tests {
     #[test]
     fn outputs_values_within_sigmoid_range() {
         let layers_sizes = vec![8, 5, 100];
-        let network = NeuralNetwork::from(layers_sizes.clone());
+        let mut network = NeuralNetwork::from(layers_sizes.clone());
 
         let input = array![-2., -1., 0., 1., 2., 3., 4., 5.];
-        let actual = network.feed_forward(input);
+        let actual = network.feed_forward(&input);
 
         for actual_value in actual.into_raw_vec().iter() {
             assert!(*actual_value < 1.0);
