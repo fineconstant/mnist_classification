@@ -92,14 +92,14 @@ impl NeuralNetwork {
     /// If the optional argument `test_data` is supplied, then the program will evaluate
     /// the network after each epoch of training, and print out partial progress.
     /// This is useful for tracking progress, but slows things down substantially
-    fn stochastic_gradient_descend(
+    pub fn stochastic_gradient_descend(
         &mut self,
         epochs: u32,
         mini_batch_size: usize,
         eta: u32,
         training_data: &mut Vec<MnistImage>,
         test_data_option: Option<Vec<MnistImage>>,
-    ) {
+    ) -> &mut NeuralNetwork {
         let training_data_size = training_data.len();
         info!("Training data size: {}", training_data_size);
         info!("Training epochs: {}", epochs);
@@ -120,8 +120,10 @@ impl NeuralNetwork {
                 None => {}
             };
 
-            info!("Completed learning epoch: {}", epoch);
+            info!("Finished learning epoch: {}/{}", epoch + 1, epochs);
         }
+
+        self
     }
 
     // todo: logging
@@ -155,9 +157,60 @@ impl NeuralNetwork {
             .collect::<Vec<_>>();
     }
 
-    fn back_propagate(&mut self, x: f32, y: f32) -> (Array2<f32>, Array1<f32>) {
-        println!("x: {}, y: {}", x, y);
-        (array![[1., 2.], [3., 4.]], array![1., 2., 3., 4.])
+    fn back_propagate(&mut self, batch_item: &MnistImage) -> (Vec<Array2<f32>>, Vec<Array1<f32>>) {
+        let mut nabla_weights = self.weights.iter()
+            .map(|w| Array2::zeros(w.dim()))
+            .collect::<Vec<Array2<f32>>>();
+
+        let mut nabla_biases = self.biases.iter()
+            .map(|b| Array1::zeros(b.dim()))
+            .collect::<Vec<Array1<f32>>>();
+
+        let mut activation = batch_item.image.to_owned();
+        let mut activations = vec![activation.to_owned()];
+        let mut zs = Vec::<Array1<f32>>::with_capacity(self.weights.len());
+
+        for (weights, biases) in self.weights.iter().zip(self.biases.iter()) {
+            let z = weights.dot(&activation) + biases;
+            activation = Algebra::sigmoid(&z);
+            activations.push(activation.to_owned());
+            zs.push(z);
+        }
+
+        // backward pass
+        let mut delta = {
+            let output_activations = activations.last().unwrap();
+            let last_z = zs.last().unwrap();
+            self.cost_derivative(output_activations, &batch_item.label) * Algebra::sigmoid_prime(last_z)
+        };
+
+        let previous_activations = &activations[activations.len() - 2];
+        let delta_trans = delta.to_owned().into_shape((delta.len(), 1)).unwrap();
+        let output_activations_trans = previous_activations.to_owned().into_shape((1, previous_activations.len())).unwrap();
+        *nabla_weights.last_mut().unwrap() = delta_trans.dot(&output_activations_trans);
+        *nabla_biases.last_mut().unwrap() = delta.to_owned();
+
+        for l in 2..self.layers_number {
+            let z = &zs[zs.len() - l];
+
+            delta = self.weights[self.weights.len() - l + 1]
+                .to_owned().reversed_axes()
+                .dot(&delta)
+                .to_owned() * Algebra::sigmoid_prime(z);
+
+
+            let selected_activations = &activations[activations.len() - l - 1];
+            let selected_activations_trans = selected_activations.to_owned().into_shape((1, selected_activations.len())).unwrap();
+            let delta_trans = delta.to_owned().into_shape((delta.len(), 1)).unwrap();
+
+            let nw_len = nabla_weights.len();
+            *nabla_weights.get_mut(nw_len - l).unwrap() = delta_trans.dot(&selected_activations_trans);
+
+            let nb_len = nabla_biases.len();
+            *nabla_biases.get_mut(nb_len - l).unwrap() = delta.to_owned();
+        }
+
+        (nabla_weights, nabla_biases)
     }
 
     /// Evaluate the network and print out partial progress.
