@@ -34,12 +34,11 @@ impl NeuralNetwork {
         let weights = tail
             .zip(drop_last)
             // weights (neuron, weight)
-            // .map(|(x, y)| StandardNormalDistribution::from(&[*x, *y]))
+            .map(|(x, y)| StandardNormalDistribution::from(&[*x, *y]))
             // weights (weight, neuron)
-            .map(|(x, y)| StandardNormalDistribution::from(&[*y, *x]))
+            // .map(|(x, y)| StandardNormalDistribution::from(&[*y, *x]))
             .map(|array| {
-                array
-                    .into_dimensionality::<Ix2>()
+                array.into_dimensionality::<Ix2>()
                     .expect("Failed converting weights into 2D array")
             })
             .collect::<Vec<_>>();
@@ -48,8 +47,7 @@ impl NeuralNetwork {
             .iter()
             .map(|x| StandardNormalDistribution::from(&[*x]))
             .map(|array| {
-                array
-                    .into_dimensionality::<Ix1>()
+                array.into_dimensionality::<Ix1>()
                     .expect("Failed biases weights into 1D array")
             })
             .collect::<Vec<_>>();
@@ -76,7 +74,7 @@ impl NeuralNetwork {
                 debug!("Acc: {:?}", acc);
                 debug!("Weights:\n{:?}", weights);
                 debug!("Biases: {:?}", biases);
-                Algebra::sigmoid(acc.dot(weights) + biases)
+                Algebra::sigmoid(&(weights.dot(&acc) + biases))
             })
     }
 
@@ -104,15 +102,9 @@ impl NeuralNetwork {
     ) {
         let training_data_size = training_data.len();
         info!("Training data size: {}", training_data_size);
-
-        let test_data = match test_data_option {
-            Some(x) => x,
-            None => vec![],
-        };
+        info!("Training epochs: {}", epochs);
 
         for epoch in 0..epochs {
-            info!("Learning epoch: {}", epoch);
-
             training_data.shuffle(&mut self.rng);
             // training_data.shuffle(&mut thread_rng());
 
@@ -226,21 +218,21 @@ mod tests {
             .enumerate()
         {
             // weights (neuron, weight)
-            // assert_eq!(bias_array.len_of(Axis(0)), *expected_len);
-            // assert_eq!(bias_array.len_of(Axis(1)), layers_sizes[idx])
+            assert_eq!(weights_array.len_of(Axis(0)), *expected_len);
+            assert_eq!(weights_array.len_of(Axis(1)), layers_sizes[idx]);
 
             // weights (weight, neuron)
-            assert_eq!(weights_array.len_of(Axis(0)), layers_sizes[idx]);
-            assert_eq!(weights_array.len_of(Axis(1)), *expected_len);
+            // assert_eq!(weights_array.len_of(Axis(0)), layers_sizes[idx]);
+            // assert_eq!(weights_array.len_of(Axis(1)), *expected_len);
         }
     }
 
     #[test]
     fn outputs_value_for_each_neuron_in_last_layer() {
-        let layers_sizes = vec![8, 5, 3];
+        let layers_sizes = vec![5, 3, 3];
         let network = NeuralNetwork::from(layers_sizes.clone());
 
-        let input = array![-2., -1., 0., 1., 2., 3., 4., 5.];
+        let input = array![-1., 0., 1., 2., 3.];
         let actual = network.feed_forward(input);
 
         assert_eq!(actual.len(), *layers_sizes.last().unwrap());
