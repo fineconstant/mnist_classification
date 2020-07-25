@@ -1,12 +1,13 @@
 use std::iter::FromIterator;
 use std::ops::Div;
 
-use ndarray::Array1;
+use ndarray::{Array1, Array2, Array};
 use error_chain::*;
 
 use crate::infrastructure::mnist_loader::raw::images::MnistRawImages;
 use crate::infrastructure::mnist_loader::raw::labels::MnistRawLabels;
 use crate::infrastructure::mnist_loader::error::{Error, ErrorKind};
+use std::fmt::{Display, Formatter};
 
 pub struct MnistImage {
     pub label: Array1<f32>,
@@ -33,13 +34,23 @@ impl MnistImage {
         Ok(dataset)
     }
 
+    pub fn from(label: Array1<f32>, image: Array1<f32>) -> Vec<MnistImage> {
+        vec![MnistImage { label, image }]
+    }
+
     /// Returns a 10-dimensional unit vector with a 1.0 in the x-th position and zeroes elsewhere.
     /// This is used to convert a digit into a corresponding desired output from the neural network.
     fn vectorize(x: u8) -> Array1<f32> {
-        let mut arr = Array1::from(vec![0.0f32; 10]);
+        let mut arr = Array1::<f32>::zeros(10);
         arr[x as usize] = 1.0f32;
 
         arr
+    }
+}
+
+impl Display for MnistImage {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "MnistImage(label size: {}, image size: {})", self.label.len(), self.image.len())
     }
 }
 
