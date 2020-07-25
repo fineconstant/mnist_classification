@@ -106,36 +106,53 @@ impl NeuralNetwork {
 
         for epoch in 0..epochs {
             training_data.shuffle(&mut self.rng);
-            // training_data.shuffle(&mut thread_rng());
 
-            // for mini_batch in training_data.chunks(mini_batch_size) {
-            //     self.update_mini_batch(mini_batch.data, eta);
-            //
-            //     if !test_data.is_empty() {
-            //         // self.evaluate(test_data)
-            //     }
-            // }
+            for mini_batch in training_data.chunks(mini_batch_size) {
+                self.update_mini_batch(mini_batch, eta);
+            }
+
+            match &test_data_option {
+                Some(test_data) => {
+                    // todo: implement 4 - logging
+                    // info!("Completed learning epoch: {}, {}", epoch,test_data.len());
+                    self.evaluate(test_data)
+                }
+                None => {}
+            };
+
+            info!("Completed learning epoch: {}", epoch);
         }
     }
 
-    fn update_mini_batch(&mut self, mini_batch: &Vec<MnistImage>, eta: u32) {
-        let _nabla_weights = self
+    // todo: logging
+    fn update_mini_batch(&mut self, mini_batch: &[MnistImage], eta: u32) {
+        let mut nabla_weights = self
             .weights
             .iter()
-            .map(|weights| Array2::zeros(weights.dim()))
+            .map(|w| Array2::zeros(w.dim()))
             .collect::<Vec<Array2<f32>>>();
 
-        let _nabla_biases = self
+        let mut nabla_biases = self
             .biases
             .iter()
-            .map(|bias| Array1::zeros(bias.dim()))
+            .map(|b| Array1::zeros(b.dim()))
             .collect::<Vec<Array1<f32>>>();
 
         for batch_item in mini_batch {
-            let (delta_nabla_weights, delta_nabla_biases) = self.back_propagate(1., 2.);
+            let (delta_nabla_weights, delta_nabla_biases) = self.back_propagate(batch_item);
+            nabla_weights = nabla_weights.iter().zip(delta_nabla_weights.iter())
+                .map(|(nw, dnw)| nw + dnw).collect::<Vec<_>>();
+            nabla_biases = nabla_biases.iter().zip(delta_nabla_biases.iter())
+                .map(|(nb, dnb)| nb + dnb).collect::<Vec<_>>();
         }
 
-        // println!("{:?}", mini_batch)
+        self.weights = self.weights.iter().zip(nabla_weights.iter())
+            .map(|(w, nw)| w.sub(eta as f32 / mini_batch.len() as f32) * nw)
+            .collect::<Vec<_>>();
+
+        self.biases = self.biases.iter().zip(nabla_biases.iter())
+            .map(|(b, nb)| b.sub(eta as f32 / mini_batch.len() as f32) * nb)
+            .collect::<Vec<_>>();
     }
 
     fn back_propagate(&mut self, x: f32, y: f32) -> (Array2<f32>, Array1<f32>) {
