@@ -1,8 +1,7 @@
-use std::iter::FromIterator;
 use std::ops::Div;
 
 use error_chain::*;
-use ndarray::Array1;
+use ndarray::{Array1, Array2};
 
 use crate::infrastructure::mnist_loader::error::{Error, ErrorKind};
 use crate::infrastructure::mnist_loader::raw::images::MnistRawImages;
@@ -10,9 +9,9 @@ use crate::infrastructure::mnist_loader::raw::labels::MnistRawLabels;
 use std::fmt::{Display, Formatter};
 
 pub struct MnistImage {
-    pub raw_label: usize,
+    pub classification: usize,
     pub label: Array1<f64>,
-    pub image: Array1<f64>,
+    pub image: Array2<f64>,
 }
 
 impl MnistImage {
@@ -33,12 +32,13 @@ impl MnistImage {
             .zip(raw_labels.labels.iter())
             .map(|(raw_image, raw_label)| {
                 let label = MnistImage::vectorize(*raw_label);
-                let image = Array1::from_iter(raw_image.to_owned())
+                let image = Array2::from_shape_vec((1, raw_image.len()), raw_image.to_owned())
+                    .unwrap()
                     .mapv(|v| v as f64)
                     .div(u8::MAX as f64);
 
                 MnistImage {
-                    raw_label: *raw_label as usize,
+                    classification: *raw_label as usize,
                     label,
                     image,
                 }
@@ -48,10 +48,10 @@ impl MnistImage {
         Ok(dataset)
     }
 
-    pub fn from(raw_label: u8, label: Array1<f64>, image: Array1<f64>) -> Vec<MnistImage> {
+    pub fn from(raw_label: u8, image: Array2<f64>) -> Vec<MnistImage> {
         vec![MnistImage {
-            raw_label: raw_label as usize,
-            label,
+            classification: raw_label as usize,
+            label: MnistImage::vectorize(raw_label),
             image,
         }]
     }
