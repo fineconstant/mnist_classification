@@ -4,7 +4,7 @@ pub struct Algebra;
 
 impl Algebra {
     /// Calculates Sigmoid value for each element of an array.
-    pub fn sigmoid<D>(array: Array<f32, D>) -> Array<f32, D>
+    pub fn sigmoid<D>(array: &Array<f32, D>) -> Array<f32, D>
     where
         D: Dimension,
     {
@@ -12,7 +12,7 @@ impl Algebra {
     }
 
     /// Calculates first derivative Sigmoid value for each element of an array.
-    pub fn sigmoid_prime<D>(array: Array<f32, D>) -> Array<f32, D>
+    pub fn sigmoid_prime<D>(array: &Array<f32, D>) -> Array<f32, D>
     where
         D: Dimension,
     {
@@ -20,7 +20,7 @@ impl Algebra {
     }
 
     /// Calculates exponential (e^x) for each element of an array.
-    pub fn exp<D>(array: Array<f32, D>) -> Array<f32, D>
+    pub fn exp<D>(array: &Array<f32, D>) -> Array<f32, D>
     where
         D: Dimension,
     {
@@ -36,7 +36,7 @@ mod tests {
     fn calculates_sigmoid_for_1d_array() {
         let xs = array![-5., -4., -3., -2., -1., 0., 1., 2., 3., 4., 5., 6.];
 
-        let actual = Algebra::sigmoid(xs);
+        let actual = Algebra::sigmoid(&xs);
 
         let expected = array![
             0.006692851,
@@ -59,7 +59,7 @@ mod tests {
     fn calculates_sigmoid_for_2d_array() {
         let xs = array![[-5., -4., -3., -2., -1., 0.], [1., 2., 3., 4., 5., 6.]];
 
-        let actual = Algebra::sigmoid(xs);
+        let actual = Algebra::sigmoid(&xs);
 
         let expected = array![
             [
@@ -79,7 +79,7 @@ mod tests {
     fn calculates_sigmoid_prime_for_1d_array() {
         let xs = array![-5., -4., -3., -2., -1., 0., 1., 2., 3., 4., 5., 6.];
 
-        let actual = Algebra::sigmoid_prime(xs);
+        let actual = Algebra::sigmoid_prime(&xs);
 
         let expected = array![
             0.0066480567,
@@ -102,7 +102,7 @@ mod tests {
     fn calculates_sigmoid_prime_for_2d_array() {
         let xs = array![[-5., -4., -3., -2., -1., 0.], [1., 2., 3., 4., 5., 6.]];
 
-        let actual = Algebra::sigmoid_prime(xs);
+        let actual = Algebra::sigmoid_prime(&xs);
 
         let expected = array![
             [
@@ -129,7 +129,7 @@ mod tests {
     fn calculates_exp_for_1d_array() {
         let xs = array![-5., -4., -3., -2., -1., 0., 1., 2., 3., 4., 5., 6.];
 
-        let actual = Algebra::exp(xs);
+        let actual = Algebra::exp(&xs);
 
         let expected = array![
             0.006737947,
@@ -152,7 +152,7 @@ mod tests {
     fn calculates_exp_for_2d_array() {
         let xs = array![[-5., -4., -3., -2., -1., 0.], [1., 2., 3., 4., 5., 6.]];
 
-        let actual = Algebra::exp(xs);
+        let actual = Algebra::exp(&xs);
 
         let expected = array![
             [
