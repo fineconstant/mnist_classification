@@ -1,7 +1,7 @@
 use std::iter::FromIterator;
 use std::ops::Div;
 
-use ndarray::{Array1, Array};
+use ndarray::Array1;
 use error_chain::*;
 
 use crate::infrastructure::mnist_loader::raw::images::MnistRawImages;
