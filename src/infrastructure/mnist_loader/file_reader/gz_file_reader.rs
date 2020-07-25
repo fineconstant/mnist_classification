@@ -22,8 +22,8 @@ impl FileReader<GzDecoder<File>> for GZFileReader {
 mod tests {
     use std::io::{ErrorKind, Read, Write};
 
-    use flate2::Compression;
     use flate2::write;
+    use flate2::Compression;
     use tempfile::*;
 
     use super::*;
