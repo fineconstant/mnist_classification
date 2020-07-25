@@ -111,7 +111,7 @@ impl NeuralNetwork {
             match &test_data_option {
                 Some(test_data) => {
                     let evaluation = self.evaluate(test_data);
-                    info!("Evaluation: {}/{}", evaluation, test_data.len());
+                    info!("Finished learning epoch: {}/{}, evaluation: {}/{}", epoch + 1, epochs, evaluation, test_data.len());
                 }
                 None => {
                     info!("Finished learning epoch: {}/{}", epoch + 1, epochs);
@@ -220,7 +220,7 @@ impl NeuralNetwork {
     }
 
     fn cost_derivative(&mut self, output_activation: &Array1<f32>, label: &Array1<f32>) -> Array1<f32> {
-        output_activation.sub(label)
+        output_activation - label
     }
 }
 
