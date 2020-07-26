@@ -1,17 +1,18 @@
+use std::fmt::{Display, Formatter};
 use std::ops::Div;
 
 use error_chain::*;
-use ndarray::{Array1, Array2};
+use ndarray::Array2;
 
 use crate::infrastructure::mnist_loader::error::{Error, ErrorKind};
 use crate::infrastructure::mnist_loader::raw::images::MnistRawImages;
 use crate::infrastructure::mnist_loader::raw::labels::MnistRawLabels;
-use std::fmt::{Display, Formatter};
 
 pub struct MnistImage {
     pub classification: usize,
-    pub label: Array1<f64>,
+    pub label: Array2<f64>,
     pub image: Array2<f64>,
+    pub image_size: usize,
 }
 
 impl MnistImage {
@@ -41,6 +42,7 @@ impl MnistImage {
                     classification: *raw_label as usize,
                     label,
                     image,
+                    image_size: raw_image.len(),
                 }
             })
             .collect::<Vec<_>>();
@@ -48,19 +50,20 @@ impl MnistImage {
         Ok(dataset)
     }
 
-    pub fn from(raw_label: u8, image: Array2<f64>) -> Vec<MnistImage> {
-        vec![MnistImage {
+    pub fn from(raw_label: u8, image: Array2<f64>, image_size: usize) -> MnistImage {
+        MnistImage {
             classification: raw_label as usize,
             label: MnistImage::vectorize(raw_label),
             image,
-        }]
+            image_size,
+        }
     }
 
-    /// Returns a 10-dimensional unit vector with a 1.0 in the x-th position and zeroes elsewhere.
+    /// Returns a 2D (1,10) vector with a 1.0 in the (1, x-th) position and zeroes elsewhere.
     /// This is used to convert a digit into a corresponding desired output from the neural network.
-    fn vectorize(x: u8) -> Array1<f64> {
-        let mut arr = Array1::<f64>::zeros(10);
-        arr[x as usize] = 1.0f64;
+    fn vectorize(x: u8) -> Array2<f64> {
+        let mut arr = Array2::<f64>::zeros((1, 10));
+        arr[(0, x as usize)] = 1.0f64;
 
         arr
     }
@@ -85,8 +88,9 @@ mod tests {
     fn vectorizes_from_zero_to_nine() {
         for x in 0u8..10 {
             let actual_vector = MnistImage::vectorize(x);
+            println!("{:?}", actual_vector);
 
-            let actual = actual_vector[x as usize];
+            let actual = actual_vector[(0, x as usize)];
             let expected = 1.0f64;
             assert_eq!(actual_vector.len(), 10);
             assert_ulps_eq!(actual, expected);
@@ -101,7 +105,7 @@ mod tests {
 
             for i in 0..10 {
                 if x != i {
-                    let actual = actual_vector[i as usize];
+                    let actual = actual_vector[(0, i as usize)];
                     let expected = 0.0f64;
                     assert_ulps_eq!(actual, expected);
                 }
