@@ -25,6 +25,6 @@ fn main() {
     let dataset = &mut MnistImage::new(mnist_images, mnist_labels).unwrap();
     let test_dataset = &mut MnistImage::new(test_mnist_images, test_mnist_labels).unwrap();
 
-    let mut network = NeuralNetwork::new(&[784, 100, 20, 10]);
-    network.stochastic_gradient_descend(100, 10, 2.0, dataset, test_dataset);
+    let mut network = NeuralNetwork::new(&[784, 100, 10]);
+    network.stochastic_gradient_descend(100, 10, 3.0, dataset, test_dataset);
 }
